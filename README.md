@@ -1,11 +1,16 @@
-# GoIndustrialProject
+# Go Industrial Project
 This industrial project is the technical solution to the client brief by Foodpanda.
 
 The task was to create an alert in the cart when added items do not meet with users predefined health conditions and to encourage users to do self pick up.
 
-The solution is written using Go Language.
+The solution is develop using Go Language.
 
 Some sample data will be added into the application to simulate restaurants and foods.
+
+## Developers
+- Koh Shao Wei
+- Ahmad Bahrudin
+- Xu Ran
 
 ## Current Flow
 
