@@ -50,30 +50,30 @@ Account:
 Condition:
 
     **Condition Table**
-    -	Username    string (Primary key , unique identifier for the account)
-	  - MaxCalories int
-	  - Diabetic    bool
-	  - Halal       bool
-  	- Vegan       bool
-  	- Address     string
-  	- PostalCode  int
+    - Username    string (Primary key , unique identifier for the account)
+    - MaxCalories int
+    - Diabetic    bool
+    - Halal       bool
+    - Vegan       bool
+    - Address     string
+    - PostalCode  int
 
 Food:
 
     **Food Table**
-    -	Name        string
-  	- ShopID      int
-  	- Description string
-  	- Calories    int
-  	- Sugary      bool
-  	- Halal       bool
-  	- Vegan       bool
+    - Name        string
+    - ShopID      int
+    - Description string
+    - Calories    int
+    - Sugary      bool
+    - Halal       bool
+    - Vegan       bool
 
 Restaurant:
 
     **Restaurant Table**
-    -	ID          int (Primary key , unique identifier for the account)
-    -	Name        string
-    -	Description string
-    -	Address     string
-    -	PostalCode  int
+    - ID          int (Primary key , unique identifier for the account)
+    - Name        string
+    - Description string
+    - Address     string
+    - PostalCode  int
