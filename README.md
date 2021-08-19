@@ -5,7 +5,7 @@ The task was to create an alert in the cart when added items do not meet with us
 
 The solution is develop using Go Language.
 
-Some sample data will be added into the application to simulate restaurants and foods.
+Sample data will be added into the application to simulate restaurants and foods.
 
 ## Developers
 - Koh Shao Wei
