@@ -43,13 +43,11 @@ Cart Checkout -> Change Address (If needed) -> Calculate Distance Between Addres
 
 Account:
 
-    **Account Table**
     - UserName string (Primary key , unique identifier for the account)
     - Password string
 
 Condition:
 
-    **Condition Table**
     - Username    string (Primary key , unique identifier for the account)
     - MaxCalories int
     - Diabetic    bool
@@ -60,7 +58,6 @@ Condition:
 
 Food:
 
-    **Food Table**
     - Name        string
     - ShopID      int
     - Description string
@@ -71,7 +68,6 @@ Food:
 
 Restaurant:
 
-    **Restaurant Table**
     - ID          int (Primary key , unique identifier for the account)
     - Name        string
     - Description string
