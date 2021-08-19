@@ -38,3 +38,42 @@ Checkout:
 Cart Checkout -> Change Address (If needed) -> Calculate Distance Between Address & Restaurant 
 -> Calculate Calories Burn From Walking (Maybe Cycling?) -> Choose Food Collection Method (Self Pick Up/Deliver)
 ```
+
+## Database Tables
+
+Account:
+
+    **Account Table**
+    - UserName string (Primary key , unique identifier for the account)
+    - Password string
+
+Condition:
+
+    **Condition Table**
+    -	Username    string (Primary key , unique identifier for the account)
+	  - MaxCalories int
+	  - Diabetic    bool
+	  - Halal       bool
+  	- Vegan       bool
+  	- Address     string
+  	- PostalCode  int
+
+Food:
+
+    **Food Table**
+    -	Name        string
+  	- ShopID      int
+  	- Description string
+  	- Calories    int
+  	- Sugary      bool
+  	- Halal       bool
+  	- Vegan       bool
+
+Restaurant:
+
+    **Restaurant Table**
+    -	ID          int (Primary key , unique identifier for the account)
+    -	Name        string
+    -	Description string
+    -	Address     string
+    -	PostalCode  int
