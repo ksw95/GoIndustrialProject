@@ -48,7 +48,7 @@ Account:
 
 Condition:
 
-    - Username    string (Primary key , unique identifier for the account)
+    - Username    string (Primary key , unique identifier for the condition)
     - MaxCalories int
     - Diabetic    bool
     - Halal       bool
@@ -68,7 +68,7 @@ Food:
 
 Restaurant:
 
-    - ID          int (Primary key , unique identifier for the account)
+    - ID          int (Primary key , unique identifier for the restaurant)
     - Name        string
     - Description string
     - Address     string
