@@ -1,11 +1,11 @@
 package models
 
 type History struct {
-	ID	            int
+	ID							int
 	Username	      string
-  FoodPurchase	  string
-  Price	          float
-  DeliveryMode	  string
-  Distance        float
-  CaloriesBurned	int
+	FoodPurchase	  string
+	Price	          float
+	DeliveryMode	  string
+	Distance        float
+	CaloriesBurned	int
 }
