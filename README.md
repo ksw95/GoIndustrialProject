@@ -43,8 +43,10 @@ Cart Checkout -> Change Address (If needed) -> Calculate Distance Between Addres
 
 Account:
 
-    - UserName string (Primary key , unique identifier for the account)
-    - Password string
+    - Username    string (Primary key , unique identifier for the account)
+    - Password    string
+    - Address     string
+    - PostalCode  int
 
 Condition:
 
@@ -53,11 +55,10 @@ Condition:
     - Diabetic    bool
     - Halal       bool
     - Vegan       bool
-    - Address     string
-    - PostalCode  int
 
 Food:
 
+    - ID          int (Primary key , unique identifier for the food)
     - Name        string
     - ShopID      int
     - Description string
