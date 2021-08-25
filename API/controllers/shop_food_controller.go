@@ -11,7 +11,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/echo"
-	"gorm.io/gorm"
 )
 
 type DBHandler struct {
@@ -39,19 +38,23 @@ func newResponse(c echo.Context, msg string, resBool string, httpStatus int, dat
 	return c.JSON(httpStatus, responseJson) // encode to json and send
 }
 
-// function to read the JSON on a request
-// maps body into a map[string]interface and checks api key
-func checkKey(c echo.Context, dbHandler *DBHandler) error {
+// //checks the api key
+// func checkKey(c echo.Context, dbHandler *DBHandler) error {
+// 	//############ need to sub dbHandler into the appropriate struct to access api key ##############
+// 	// check if key matches
+// 	if c.QueryParam("key") != dbHandler.ApiKey { ////
+// 		// if api key does not match
+// 		newResponse(c, "Forbidden", "false", http.StatusForbidden, nil)
+// 		return errors.New("incorrect api key supplied")
+// 	}
+// 	return nil
+// }
 
-	//############ need to sub dbHandler into the appropriate struct to access api key ##############
-	// check if key matches
-	if c.QueryParam("key") != dbHandler.ApiKey { ////
-		// if api key does not match
-		newResponse(c, "Forbidden", "false", http.StatusForbidden, nil)
-		return errors.New("incorrect api key supplied")
-	}
-	return nil
+// for client to check if api is active
+func HealthCheckLiveness(c echo.Context) error {
+	return newResponseSimple(c, "nil", "true", http.StatusOK)
 }
+
 
 // Opens db and returns a struct to access it
 func OpenDB() *DBHandler {
@@ -65,7 +68,7 @@ func OpenDB() *DBHandler {
 	databaseURL := os.Getenv("DATABASE_URL_MYSQL")
 
 	//load database connection
-	db, err1 := gorm.Open(mysql.Open(databaseURL), &gorm.Config{})
+	db, err1 := sql.Open("mysql", databaseURL)
 
 	if err1 != nil {
 		panic(err.Error())
@@ -77,24 +80,69 @@ func OpenDB() *DBHandler {
 	return &dbHandler
 }
 
-//Retrieve All Restaurants
-func (dbHandler *DBHandler) GetRestaurants(c echo.Context) error {
-	fmt.Println("This is to get restaurants") //delete after changing the function
+//Retrieve one Restaurants
+func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 
-	err := checkKey(c, dbHandler) // read response JSON
+	//get id param
+	id := c.QueryParam("ID")
 
-	if err != nil { //err means username not found, ok to proceed
+	restaurant := models.Restaurant
+	results, err1 := DBHandlerMysql.DB.Query("Select * FROM Restaurant WHERE ID = ?", id)
+	defer results.Close()
+
+	if err1 != nil {
+		fmt.Println(err1.Error())
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 	}
 
+	//scan mysql result
+	err2 := results.Scan(&restaurant.ID,
+		restaurant.Name,
+		restaurant.Description,
+		restaurant.Address,
+		restaurant.PostalCode)
+
+	if err2 != nil {
+		fmt.Println(err2.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
+
+	//return json
+	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &[]interface{}{restaurant})
+
+}
+
+//Retrieve All Restaurants
+func (dbHandler *DBHandler) GetRestaurantAll(c echo.Context) error {
+
+	//get param id
 	id := c.QueryParam("ID")
-	// result := db.Find(&users) // get all
 
-	result := models.Restaurant
-	dbHandler.DB.First(&result, id)
+	results, err1 := DBHandlerMysql.DB.Query("Select * FROM Restaurant", id)
+	defer results.Close()
 
-	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &[]interface{}{result})
+	if err1 != nil {
+		fmt.Println(err1.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
 
+	//gets mysql rows and put into interface array
+	restaurantArr := []interface{}{}
+	for results.Next() {
+		restaurant := models.Restaurant
+		err := results.Scan(&restaurant.ID,
+			restaurant.Name,
+			restaurant.Description,
+			restaurant.Address,
+			restaurant.PostalCode)
+
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			restaurantArr = append(restaurantArr, restaurant)
+		}
+
+	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &restaurantArr)
 }
 
 //Return Restaurants based on search
@@ -105,48 +153,74 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 	sortIndexArr := []int{}
 	returnArr := []interface{}{}
 
-	if c.QueryParam("key") != "restaurant" {
+	searchTermSplit := CleanWord(searchTerm, splitText, stopWords2)
+
+	if searchTerm == "restaurant" {
+
 		//search through resstaurant
-		restaurant := models.Restaurant
+		results, err := DBHandlerMysql.DB.Query("Select * FROM Restaurant")
+		defer results.Close()
 
-		searchTermSplit := CleanWord(searchTerm, splitText, stopWords2)
-
-		result := dbHandler.DB.Find(&restaurant) // SELECT * FROM users;
-
-		if result.Error != nil { //err means username not found, ok to proceed
+		if err != nil { //err means username not found, ok to proceed
 			return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 		}
 
 		i := 0
-		for resta := range restaurant {
-			score := searchItem(searchTerm, searchTermSplit, resta.Name, resta.Description)
 
-			scoreArr = append(scoreArr, score)
-			sortIndexArr = append(sortIndexArr, i)
-			returnArr = append(returnArr, resta)
-			i++
+		for results.Next() {
+			restaurant := models.Restaurant
+			err = results.Scan(&restaurant.ID,
+				restaurant.Name,
+				restaurant.Description,
+				restaurant.Address,
+				restaurant.PostalCode)
+
+			if err != nil {
+				fmt.Println(err.Error())
+
+			} else {
+				score := searchItem(searchTerm, searchTermSplit, restaurant.Name, restaurant.Description)
+
+				scoreArr = append(scoreArr, score)
+				sortIndexArr = append(sortIndexArr, i)
+				returnArr = append(returnArr, restaurant)
+				i++
+			}
 		}
 
 	} else {
-		// search through food item instead
-		food := models.Food
 
-		searchTermSplit := CleanWord(searchTerm, splitText, stopWords2)
+		results, err := DBHandlerMysql.DB.Query("Select * FROM Food")
+		defer results.Close()
 
-		result := dbHandler.DB.Find(&food) // SELECT * FROM users;
-
-		if result.Error != nil { //err means username not found, ok to proceed
+		if err != nil { //err means username not found, ok to proceed
 			return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 		}
 
 		i := 0
-		for item := range food {
-			score := searchItem(searchTerm, searchTermSplit, item.Name, item.Description)
 
-			scoreArr = append(scoreArr, score)
-			sortIndexArr = append(sortIndexArr, i)
-			returnArr = append(returnArr, item)
-			i++
+		for results.Next() {
+			food := models.Food
+			err = results.Scan(&food.ID,
+				&food.Name,
+				food.ShopID,
+				food.Calories,
+				food.Sugary,
+				food.Description,
+				food.Halal,
+				food.Vegan)
+
+			if err != nil {
+				fmt.Println(err.Error())
+
+			} else {
+				score := searchItem(searchTerm, searchTermSplit, food.Name, food.Description)
+
+				scoreArr = append(scoreArr, score)
+				sortIndexArr = append(sortIndexArr, i)
+				returnArr = append(returnArr, food)
+				i++
+			}
 		}
 	}
 
@@ -193,23 +267,41 @@ func searchItem(searchTerm string, searchTermSplit []string, itemName string, It
 	return points
 }
 
-//Retrieve Food from restaurant
-func (dbHandler *DBHandler) GetFood(c echo.Context) error {
+//Retrieve All Food from restaurant
+func (dbHandler *DBHandler) GetFoodShopID(c echo.Context) error {
 
-	err := checkKey(c, dbHandler) // read response JSON
-
-	if err != nil { //err means username not found, ok to proceed
-		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
-	}
 
 	id := c.QueryParam("ID")
 	// result := db.Find(&users) // get all
 
-	result := models.Food
-	dbHandler.DB.First(&result, id)
 
-	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &[]interface{}{result})
+	results, err1 := DBHandlerMysql.DB.Query("Select * FROM Food WHERE ShopID = ?", id)
+	if err1 != nil {
+		fmt.Println(err1.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
 
+	defer results.Close()
+
+	foodArr := []interface{}{}
+	for results.Next() {
+		food := models.Food
+		err = results.Scan(&food.ID,
+			&food.Name,
+			food.ShopID,
+			food.Calories,
+			food.Sugary,
+			food.Description,
+			food.Halal,
+			food.Vegan)
+
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			foodArr = append(foodArr, food)
+		}
+
+	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &foodArr)
 }
 
 func InsertSort(arr []int, arrSort []int) ([]int, []int) {
