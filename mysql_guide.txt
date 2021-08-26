@@ -1,0 +1,90 @@
+# on cmd, Create a new docker image for mysql and enter it
+
+docker run --name mysql_restuarant -p 5700:3306 -e MYSQL_ROOT_PASSWORD=password -d mysql:latest
+Set PATH=%PATH%;"C:\Program Files\MySQL\MySQL Server 8.0\bin\
+mysql -P 5700 --protocol=tcp -u root -p
+password
+
+# after entering mysql database as root
+
+CREATE database my_db;
+USE my_db;
+
+CREATE TABLE Account  (
+    Username VARCHAR(50) NOT NULL PRIMARY KEY, 
+    Password VARCHAR(100) NOT NULL
+    );
+
+CREATE TABLE UserCond (
+    Username VARCHAR(50) NOT NULL PRIMARY KEY, 
+    MaxCalories INT,
+    Diabetic VARCHAR(1) NOT NULL, 
+    Halal VARCHAR(1) NOT NULL, 
+    Vegan VARCHAR(1) NOT NULL
+    );
+
+CREATE TABLE Food (
+    ID INT NOT NULL PRIMARY KEY, 
+    Name VARCHAR(50) NOT NULL, 
+    ShopID INT NOT NULL,
+    Calories INT NOT NULL,
+    Description VARCHAR(300) NOT NULL,
+    Sugary VARCHAR(1) NOT NULL, 
+    Halal VARCHAR(1) NOT NULL, 
+    Vegan VARCHAR(1) NOT NULL
+    );
+
+CREATE TABLE History (
+    ID INT NOT NULL PRIMARY KEY, 
+    Username VARCHAR(50) NOT NULL, 
+	FoodPurchase VARCHAR(300) NOT NULL,
+	Price FLOAT NOT NULL,
+	DeliveryMode VARCHAR(10) NOT NULL,
+	Distance FLOAT NOT NULL,
+	CaloriesBurned INT NOT NULL
+    );
+
+
+CREATE TABLE Restaurant (
+    ID INT NOT NULL PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL, 
+    Description VARCHAR(300) NOT NULL, 
+    Address VARCHAR(50) NOT NULL, 
+    PostalCode INT NOT NULL
+    );
+
+
+# create a new user 
+
+CREATE USER 'myuser'@'%' IDENTIFIED BY 'password';
+
+GRANT DELETE ON my_db.Account TO 'myuser'@'%';
+GRANT SELECT ON my_db.Account TO 'myuser'@'%';
+GRANT UPDATE ON my_db.Account TO 'myuser'@'%';
+GRANT INSERT ON my_db.Account TO 'myuser'@'%';
+
+
+GRANT DELETE ON my_db.UserCond TO 'myuser'@'%';
+GRANT SELECT ON my_db.UserCond TO 'myuser'@'%';
+GRANT UPDATE ON my_db.UserCond TO 'myuser'@'%';
+GRANT INSERT ON my_db.UserCond TO 'myuser'@'%';
+
+GRANT DELETE ON my_db.Food TO 'myuser'@'%';
+GRANT SELECT ON my_db.Food TO 'myuser'@'%';
+GRANT UPDATE ON my_db.Food TO 'myuser'@'%';
+GRANT INSERT ON my_db.Food TO 'myuser'@'%';
+
+GRANT DELETE ON my_db.History TO 'myuser'@'%';
+GRANT SELECT ON my_db.History TO 'myuser'@'%';
+GRANT UPDATE ON my_db.History TO 'myuser'@'%';
+GRANT INSERT ON my_db.History TO 'myuser'@'%';
+
+GRANT DELETE ON my_db.Restaurant TO 'myuser'@'%';
+GRANT SELECT ON my_db.Restaurant TO 'myuser'@'%';
+GRANT UPDATE ON my_db.Restaurant TO 'myuser'@'%';
+GRANT INSERT ON my_db.Restaurant TO 'myuser'@'%';
+exit;
+
+
+mysql -P 5700 --protocol=tcp -u myuser -p
+password

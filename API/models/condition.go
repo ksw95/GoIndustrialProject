@@ -1,6 +1,13 @@
 package models
 
-import "strings"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
+)
 
 type UserCond struct {
 	Username    string
@@ -21,7 +28,7 @@ func (userC *UserCond) Insert(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("401 - Invalid key"))
 		return
 	}
-	
+
 	if r.Header.Get("Content-type") == "application/json" {
 		if r.Method == "POST" {
 			// Read the string sent to the service
@@ -31,7 +38,7 @@ func (userC *UserCond) Insert(w http.ResponseWriter, r *http.Request) {
 				stmt, err := DB.Prepare("INSERT INTO Condition " +
 					"(Username, MaxCalories, Diabetic, Halal, Vegan) " +
 					"VALUES (?, ?, ?, ?, ?))")
-				
+
 				// Convert JSON to object
 				json.Unmarshal(reqBody, &userC)
 
@@ -65,7 +72,7 @@ func (userC *UserCond) Update(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("401 - Invalid key"))
 		return
 	}
-	
+
 	if r.Header.Get("Content-type") == "application/json" {
 		if r.Method == "PUT" {
 			reqBody, err := ioutil.ReadAll(r.Body)
@@ -74,7 +81,7 @@ func (userC *UserCond) Update(w http.ResponseWriter, r *http.Request) {
 				stmt, err := DB.Prepare("UPDATE Condition " +
 					"SET MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
 					"WHERE Username=?")
-				
+
 				json.Unmarshal(reqBody, &userC)
 
 				db := openDB()
@@ -115,7 +122,7 @@ func (userC UserCond) Get(w http.ResponseWriter, r *http.Request) {
 			query := "SELECT * " +
 				"FROM MemberType " +
 				"WHERE Username=?"
-			
+
 			db := openDB()
 			defer db.Close()
 

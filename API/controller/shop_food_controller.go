@@ -1,8 +1,7 @@
-package controllers
+package controller
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
+	"github.com/ksw95/GoIndustrialProject/API/models"
 	"github.com/labstack/echo"
 )
 
@@ -25,6 +26,19 @@ var (
 )
 
 func newResponse(c echo.Context, msg string, resBool string, httpStatus int, data *[]interface{}) error {
+	if data == nil {
+		responseJson := struct {
+			Msg     string //message
+			ResBool string //boolean response
+			Data    string
+		}{
+			msg,
+			resBool,
+			"nil",
+		}
+		return c.JSON(httpStatus, responseJson) // encode to json and send
+	}
+
 	responseJson := struct {
 		Msg     string //message
 		ResBool string //boolean response
@@ -50,11 +64,25 @@ func newResponse(c echo.Context, msg string, resBool string, httpStatus int, dat
 // 	return nil
 // }
 
-// for client to check if api is active
-func HealthCheckLiveness(c echo.Context) error {
-	return newResponseSimple(c, "nil", "true", http.StatusOK)
+// removes stop words and split into array of words with regexp
+func CleanWord(input1 string, splitText *regexp.Regexp, stopWords *regexp.Regexp) []string {
+	newArr := []string{}
+
+	for _, word1 := range splitText.Split(input1, -1) {
+		aa := stopWords.Match([]byte(word1))
+		// fmt.Println(word1, aa)
+
+		if !aa {
+			newArr = append(newArr, word1)
+		}
+	}
+	return newArr
 }
 
+// for client to check if api is active
+func HealthCheckLiveness(c echo.Context) error {
+	return newResponse(c, "nil", "true", http.StatusOK, nil)
+}
 
 // Opens db and returns a struct to access it
 func OpenDB() *DBHandler {
@@ -84,23 +112,28 @@ func OpenDB() *DBHandler {
 func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 
 	//get id param
-	id := c.QueryParam("ID")
+	id := c.QueryParam("id")
+	if id == "" {
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
 
-	restaurant := models.Restaurant
-	results, err1 := DBHandlerMysql.DB.Query("Select * FROM Restaurant WHERE ID = ?", id)
-	defer results.Close()
+	// query mysql
+	var restaurant models.Restaurant
+	results, err1 := dbHandler.DB.Query("Select * FROM Restaurant WHERE ID = ?", id)
 
 	if err1 != nil {
 		fmt.Println(err1.Error())
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 	}
+	defer results.Close()
 
 	//scan mysql result
+	results.Next()
 	err2 := results.Scan(&restaurant.ID,
-		restaurant.Name,
-		restaurant.Description,
-		restaurant.Address,
-		restaurant.PostalCode)
+		&restaurant.Name,
+		&restaurant.Description,
+		&restaurant.Address,
+		&restaurant.PostalCode)
 
 	if err2 != nil {
 		fmt.Println(err2.Error())
@@ -108,7 +141,7 @@ func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 	}
 
 	//return json
-	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &[]interface{}{restaurant})
+	return newResponse(c, "ok", "true", http.StatusOK, &[]interface{}{restaurant})
 
 }
 
@@ -116,33 +149,34 @@ func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 func (dbHandler *DBHandler) GetRestaurantAll(c echo.Context) error {
 
 	//get param id
-	id := c.QueryParam("ID")
+	id := c.QueryParam("id")
 
-	results, err1 := DBHandlerMysql.DB.Query("Select * FROM Restaurant", id)
-	defer results.Close()
+	results, err1 := dbHandler.DB.Query("Select * FROM Restaurant", id)
 
 	if err1 != nil {
 		fmt.Println(err1.Error())
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 	}
+	defer results.Close()
 
 	//gets mysql rows and put into interface array
 	restaurantArr := []interface{}{}
 	for results.Next() {
-		restaurant := models.Restaurant
+		var restaurant models.Restaurant
 		err := results.Scan(&restaurant.ID,
-			restaurant.Name,
-			restaurant.Description,
-			restaurant.Address,
-			restaurant.PostalCode)
+			&restaurant.Name,
+			&restaurant.Description,
+			&restaurant.Address,
+			&restaurant.PostalCode)
 
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
 			restaurantArr = append(restaurantArr, restaurant)
 		}
+	}
 
-	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &restaurantArr)
+	return newResponse(c, "ok", "true", http.StatusOK, &restaurantArr)
 }
 
 //Return Restaurants based on search
@@ -158,22 +192,22 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 	if searchTerm == "restaurant" {
 
 		//search through resstaurant
-		results, err := DBHandlerMysql.DB.Query("Select * FROM Restaurant")
-		defer results.Close()
+		results, err := dbHandler.DB.Query("Select * FROM Restaurant")
 
 		if err != nil { //err means username not found, ok to proceed
 			return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 		}
+		defer results.Close()
 
 		i := 0
 
 		for results.Next() {
-			restaurant := models.Restaurant
+			var restaurant models.Restaurant
 			err = results.Scan(&restaurant.ID,
-				restaurant.Name,
-				restaurant.Description,
-				restaurant.Address,
-				restaurant.PostalCode)
+				&restaurant.Name,
+				&restaurant.Description,
+				&restaurant.Address,
+				&restaurant.PostalCode)
 
 			if err != nil {
 				fmt.Println(err.Error())
@@ -190,25 +224,25 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 
 	} else {
 
-		results, err := DBHandlerMysql.DB.Query("Select * FROM Food")
-		defer results.Close()
+		results, err := dbHandler.DB.Query("Select * FROM Food")
 
 		if err != nil { //err means username not found, ok to proceed
 			return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 		}
+		defer results.Close()
 
 		i := 0
 
 		for results.Next() {
-			food := models.Food
-			err = results.Scan(&food.ID,
+			var food models.Food
+			err := results.Scan(&food.ID,
 				&food.Name,
-				food.ShopID,
-				food.Calories,
-				food.Sugary,
-				food.Description,
-				food.Halal,
-				food.Vegan)
+				&food.ShopID,
+				&food.Calories,
+				&food.Description,
+				&food.Sugary,
+				&food.Halal,
+				&food.Vegan)
 
 			if err != nil {
 				fmt.Println(err.Error())
@@ -237,7 +271,7 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 
 	// variable not used, but might be in the future
 
-	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &returnArrSorted)
+	return newResponse(c, "ok", "true", http.StatusOK, &returnArrSorted)
 }
 
 func searchItem(searchTerm string, searchTermSplit []string, itemName string, ItemDesc string) int {
@@ -270,12 +304,10 @@ func searchItem(searchTerm string, searchTermSplit []string, itemName string, It
 //Retrieve All Food from restaurant
 func (dbHandler *DBHandler) GetFoodShopID(c echo.Context) error {
 
-
-	id := c.QueryParam("ID")
+	id := c.QueryParam("id")
 	// result := db.Find(&users) // get all
 
-
-	results, err1 := DBHandlerMysql.DB.Query("Select * FROM Food WHERE ShopID = ?", id)
+	results, err1 := dbHandler.DB.Query("Select * FROM Food WHERE ShopID = ?", id)
 	if err1 != nil {
 		fmt.Println(err1.Error())
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
@@ -285,23 +317,24 @@ func (dbHandler *DBHandler) GetFoodShopID(c echo.Context) error {
 
 	foodArr := []interface{}{}
 	for results.Next() {
-		food := models.Food
-		err = results.Scan(&food.ID,
+		var food models.Food
+		err := results.Scan(&food.ID,
 			&food.Name,
-			food.ShopID,
-			food.Calories,
-			food.Sugary,
-			food.Description,
-			food.Halal,
-			food.Vegan)
+			&food.ShopID,
+			&food.Calories,
+			&food.Description,
+			&food.Sugary,
+			&food.Halal,
+			&food.Vegan)
 
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
 			foodArr = append(foodArr, food)
 		}
+	}
 
-	return newResponse(c, "Bad Request", "false", http.StatusBadRequest, &foodArr)
+	return newResponse(c, "ok", "true", http.StatusOK, &foodArr)
 }
 
 func InsertSort(arr []int, arrSort []int) ([]int, []int) {

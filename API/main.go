@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Mechwarrior1/PGL_backend/controller"
-	"github.com/Mechwarrior1/PGL_backend/model"
-	"github.com/Mechwarrior1/PGL_backend/mysql"
+	"github.com/ksw95/GoIndustrialProject/API/controller"
 
 	_ "github.com/go-sql-driver/mysql" // go mod init api_server.go
 	"github.com/joho/godotenv"
