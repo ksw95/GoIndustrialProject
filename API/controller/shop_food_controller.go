@@ -2,6 +2,7 @@ package controller
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -30,11 +31,9 @@ func newResponse(c echo.Context, msg string, resBool string, httpStatus int, dat
 		responseJson := struct {
 			Msg     string //message
 			ResBool string //boolean response
-			Data    string
 		}{
 			msg,
 			resBool,
-			"nil",
 		}
 		return c.JSON(httpStatus, responseJson) // encode to json and send
 	}
@@ -108,7 +107,8 @@ func OpenDB() *DBHandler {
 	return &dbHandler
 }
 
-//Retrieve one Restaurants
+// Retrieve one Restaurants
+// have test 1
 func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 
 	//get id param
@@ -142,16 +142,13 @@ func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 
 	//return json
 	return newResponse(c, "ok", "true", http.StatusOK, &[]interface{}{restaurant})
-
 }
 
 //Retrieve All Restaurants
+// have test 1
 func (dbHandler *DBHandler) GetRestaurantAll(c echo.Context) error {
 
-	//get param id
-	id := c.QueryParam("id")
-
-	results, err1 := dbHandler.DB.Query("Select * FROM Restaurant", id)
+	results, err1 := dbHandler.DB.Query("Select * FROM Restaurant")
 
 	if err1 != nil {
 		fmt.Println(err1.Error())
@@ -177,6 +174,90 @@ func (dbHandler *DBHandler) GetRestaurantAll(c echo.Context) error {
 	}
 
 	return newResponse(c, "ok", "true", http.StatusOK, &restaurantArr)
+}
+
+//insert one restaurant
+// have test 1
+func (dbHandler *DBHandler) InsertRestaurant(c echo.Context) error {
+
+	//get restaurant
+	var restaurant models.Restaurant
+	err := json.NewDecoder(c.Request().Body).Decode(&restaurant)
+	if err != nil {
+		fmt.Println(err.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
+
+	//get new id
+	id, _ := dbHandler.GetMaxID("Restaurant")
+
+	// prepare statement to insert record
+	tx, err := dbHandler.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	//first statement
+	stmt, err1 := tx.Prepare("INSERT INTO Restaurant VALUES (?, ?, ?, ?, ?)")
+	if err1 == nil {
+		fmt.Println(err1)
+	}
+
+	_, err = stmt.Exec(id,
+		restaurant.Name,
+		restaurant.Description,
+		restaurant.Address,
+		restaurant.PostalCode)
+
+	stmt.Close()
+
+	switch err {
+	case nil:
+		_ = tx.Commit()
+		return newResponse(c, "ok", "true", http.StatusOK, nil)
+	default:
+		tx.Rollback()
+		return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+	}
+}
+
+//edit one restaurant
+func (dbHandler *DBHandler) EditRestaurant(c echo.Context) error {
+
+	var restaurant models.Restaurant
+	err := json.NewDecoder(c.Request().Body).Decode(&restaurant)
+	if err != nil {
+		fmt.Println(err.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
+
+	// prepare statement to insert record
+	tx, err := dbHandler.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	//first statement
+	stmt, err1 := tx.Prepare("UPDATE Restaurant SET Name=?, Description=?, Address=?, PostalCode=? WHERE ID=")
+	if err1 == nil {
+		_, err = stmt.Exec(
+			restaurant.Name,
+			restaurant.Description,
+			restaurant.Address,
+			restaurant.PostalCode,
+			restaurant.ID)
+	}
+
+	stmt.Close()
+
+	switch err {
+	case nil:
+		_ = tx.Commit()
+		return newResponse(c, "ok", "true", http.StatusOK, nil)
+	default:
+		tx.Rollback()
+		return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+	}
 }
 
 //Return Restaurants based on search
@@ -274,6 +355,20 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 	return newResponse(c, "ok", "true", http.StatusOK, &returnArrSorted)
 }
 
+// get the current max ID in the server
+func (dbHandler *DBHandler) GetMaxID(dbTable string) (int, error) {
+	results, err := dbHandler.DB.Query("SELECT MAX(ID) FROM " + dbTable)
+	results.Next()
+	var maxID int
+	results.Scan(&maxID)
+	results.Close()
+	if err != nil {
+		maxID = 0
+	}
+	// defer recover() //recover if error from no entry
+	return maxID, err
+}
+
 func searchItem(searchTerm string, searchTermSplit []string, itemName string, ItemDesc string) int {
 	points := 0
 
@@ -335,6 +430,95 @@ func (dbHandler *DBHandler) GetFoodShopID(c echo.Context) error {
 	}
 
 	return newResponse(c, "ok", "true", http.StatusOK, &foodArr)
+}
+
+//insert one Food
+func (dbHandler *DBHandler) InsertFood(c echo.Context) error {
+
+	//get food
+	var food models.Food
+	err := json.NewDecoder(c.Request().Body).Decode(&food)
+	if err != nil {
+		fmt.Println(err.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
+
+	//get new id
+	id, _ := dbHandler.GetMaxID("food")
+
+	// prepare statement to insert record
+	tx, err := dbHandler.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	//first statement
+	stmt, err1 := tx.Prepare("INSERT INTO Food VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+	if err1 == nil {
+		fmt.Print(err1)
+		_, err = stmt.Exec(id,
+			food.Name,
+			food.ShopID,
+			food.Calories,
+			food.Description,
+			food.Sugary,
+			food.Halal,
+			food.Vegan)
+	}
+
+	stmt.Close()
+
+	switch err {
+	case nil:
+		err = tx.Commit()
+		return newResponse(c, "ok", "true", http.StatusOK, nil)
+	default:
+		tx.Rollback()
+		return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+	}
+}
+
+//edit one Food
+func (dbHandler *DBHandler) EditFood(c echo.Context) error {
+
+	//get food
+	var food models.Food
+	err := json.NewDecoder(c.Request().Body).Decode(&food)
+	if err != nil {
+		fmt.Println(err.Error())
+		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+	}
+
+	// prepare statement to insert record
+	tx, err := dbHandler.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	//first statement
+	stmt, err1 := tx.Prepare("UPDATE Food SET Name=?, ShopID=?, Calories=?, Description=?, Sugary=?, Halal=?, Vegan=? WHERE ID=")
+	if err1 == nil {
+		_, err = stmt.Exec(
+			food.Name,
+			food.ShopID,
+			food.Calories,
+			food.Description,
+			food.Sugary,
+			food.Halal,
+			food.Vegan,
+			food.ID)
+	}
+
+	stmt.Close()
+
+	switch err {
+	case nil:
+		err = tx.Commit()
+		return newResponse(c, "ok", "true", http.StatusOK, nil)
+	default:
+		tx.Rollback()
+		return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+	}
 }
 
 func InsertSort(arr []int, arrSort []int) ([]int, []int) {
