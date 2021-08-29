@@ -238,7 +238,7 @@ func (dbHandler *DBHandler) EditRestaurant(c echo.Context) error {
 	}
 
 	//first statement
-	stmt, err1 := tx.Prepare("UPDATE Restaurant SET Name=?, Description=?, Address=?, PostalCode=? WHERE ID=")
+	stmt, err1 := tx.Prepare("UPDATE Restaurant SET Name=?, Description=?, Address=?, PostalCode=? WHERE ID=?")
 	if err1 == nil {
 		_, err = stmt.Exec(
 			restaurant.Name,
@@ -270,7 +270,7 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 
 	searchTermSplit := CleanWord(searchTerm, splitText, stopWords2)
 
-	if searchTerm == "restaurant" {
+	if c.QueryParam("type") == "restaurant" {
 
 		//search through resstaurant
 		results, err := dbHandler.DB.Query("Select * FROM Restaurant")
@@ -358,7 +358,9 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 // get the current max ID in the server
 func (dbHandler *DBHandler) GetMaxID(dbTable string) (int, error) {
 	results, err := dbHandler.DB.Query("SELECT MAX(ID) FROM " + dbTable)
+	fmt.Println(err)
 	results.Next()
+
 	var maxID int
 	results.Scan(&maxID)
 	results.Close()
@@ -444,7 +446,7 @@ func (dbHandler *DBHandler) InsertFood(c echo.Context) error {
 	}
 
 	//get new id
-	id, _ := dbHandler.GetMaxID("food")
+	id, _ := dbHandler.GetMaxID("Food")
 
 	// prepare statement to insert record
 	tx, err := dbHandler.DB.Begin()
@@ -496,7 +498,7 @@ func (dbHandler *DBHandler) EditFood(c echo.Context) error {
 	}
 
 	//first statement
-	stmt, err1 := tx.Prepare("UPDATE Food SET Name=?, ShopID=?, Calories=?, Description=?, Sugary=?, Halal=?, Vegan=? WHERE ID=")
+	stmt, err1 := tx.Prepare("UPDATE Food SET Name=?, ShopID=?, Calories=?, Description=?, Sugary=?, Halal=?, Vegan=? WHERE ID=?")
 	if err1 == nil {
 		_, err = stmt.Exec(
 			food.Name,
