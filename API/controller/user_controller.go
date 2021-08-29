@@ -17,7 +17,6 @@ func Register(c echo.Context) {
 	err := json.NewDecoder(c.Request().Body).Decode(&user)
 	if err != nil {
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
-
 	}
 	user.Password, err = bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.MinCost)
 	if err != nil {
@@ -33,8 +32,6 @@ func Login(c echo.Context) {
 	//Receive params from client
 	//Check username and password
 	//Assign JWT with UserCond info
-	user := models.Account{}
-	err := json.NewDecoder(c.Request().Body).Decode(&user)
 	fmt.Println("This is for login") //delete after changing the function
 }
 
