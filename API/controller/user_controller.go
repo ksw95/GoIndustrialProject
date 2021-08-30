@@ -37,9 +37,28 @@ func (dbHandler *DBHandler) Register(c echo.Context) {
 }
 
 //User Login
-func Login(c echo.Context) {
+func (dbHandler *DBHandler) Login(c echo.Context) {
 	//Receive params from client
+	user := models.Account{}
+	err := json.NewDecoder(c.Request().Body).Decode(&user)
+	if err != nil {
+		newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+		return
+	}
 	//Check username and password
+	stmt, err := dbHandler.DB.Prepare("SELECT * FROM Account WHERE Username = ?")
+	if err != nil {
+		newResponse(c, "Preparation failed", "false", http.StatusInternalServerError, nil)
+	}
+	userAcc := models.Account{}
+	err = stmt.QueryRow(user.Username).Scan(&userAcc)
+	if err != nil {
+		newResponse(c, "Error unable to login", "false", http.StatusInternalServerError, nil)
+	}
+	if (userAcc.Password != user.Username) || (userAcc.Password != user.Password) {
+		newResponse(c, "Incorrect username or password", "false", http.StatusBadRequest, nil)
+		return
+	}
 	//Assign JWT with UserCond info
 	fmt.Println("This is for login") //delete after changing the function
 }
