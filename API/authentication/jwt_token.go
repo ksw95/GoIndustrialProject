@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-func CreateToken(c echo.Context, username string) {
+func CreateToken(c echo.Context, username string) string {
 	claims := jwt.MapClaims{
 		"username": username,
 		// UserCond data
@@ -28,4 +28,5 @@ func CreateToken(c echo.Context, username string) {
 		HttpOnly: true,
 	}
 	c.SetCookie(cookie)
+	return tokenString
 }
