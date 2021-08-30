@@ -6,7 +6,7 @@ type Food struct {
 	ShopID      int
 	Calories    int
 	Description string
-	Sugary      bool
-	Halal       bool
-	Vegan       bool
+	Sugary      string
+	Halal       string
+	Vegan       string
 }
