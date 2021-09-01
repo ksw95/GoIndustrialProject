@@ -23,31 +23,12 @@ var (
 	UserC = &UserCond{"", 0, false, false, false, "", 0}
 )
 
-// get the current max ID in the server
-func (userC *UserCond) GetNextID() (int, error) {
-	results, err := controller.DBHandler.DB.Query("SELECT MAX(ID) FROM Restaurant")
-	fmt.Println(err)
-	results.Next()
-
-	var maxID int
-	results.Scan(&maxID)
-	results.Close()
-	if err != nil {
-		maxID = 0
-	}
-	
-	return maxID
-}
-
 func (userC *UserCond) Insert(c echo.Context) error {
 	err := json.NewDecoder(c.Request().Body).Decode(&userC)
 	if err != nil {
 		fmt.Println(err.Error())
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 	}
-
-	//get new id
-	id := GetNextID()
 
 	// prepare statement to insert record
 	tx, err := controller.DBHandler.DB.Begin()
