@@ -1,4 +1,4 @@
-package models
+package Models
 
 import (
 	"GoIndustrialProject/API/controller"
@@ -21,12 +21,11 @@ type UserCond struct {
 
 var (
 	UserC = &UserCond{"", 0, false, false, false, "", 0}
-	DB = controller.DBHandler.DB
 )
 
 // get the current max ID in the server
 func (userC *UserCond) GetNextID() (int, error) {
-	results, err := DB.Query("SELECT MAX(ID) FROM Restaurant")
+	results, err := controller.DBHandler.DB.Query("SELECT MAX(ID) FROM Restaurant")
 	fmt.Println(err)
 	results.Next()
 
@@ -51,7 +50,7 @@ func (userC *UserCond) Insert(c echo.Context) error {
 	id := GetNextID()
 
 	// prepare statement to insert record
-	tx, err := DB.Begin()
+	tx, err := controller.DBHandler.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -85,7 +84,7 @@ func (userC *UserCond) Update(c echo.Context) error {
 	}
 
 	// prepare statement to insert record
-	tx, err := DB.Begin()
+	tx, err := controller.DBHandler.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func (userC UserCond) Get(c echo.Context) error {
 	}
 
 	// query mysql
-	results, err1 := DB.Query("SELECT * FROM MemberType WHERE Username=?", username)
+	results, err1 := controller.DBHandler.DB.Query("SELECT * FROM MemberType WHERE Username=?", username)
 	
 	if err1 != nil {
 		fmt.Println(err1.Error())
