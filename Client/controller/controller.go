@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/ksw95/GoIndustrialProject/Client/session"
 	"github.com/labstack/echo"
 )
 
@@ -58,11 +59,8 @@ func TapApi(httpMethod string, jsonData interface{}, url string, sessionMgr *ses
 }
 
 // handler function, for the index page
-func Index_GET(c echo.Context, jwtWrapper *jwtsession.JwtWrapper, sessionMgr *session.Session) error {
-	userSes := CheckSession(c)
-	if err != nil {
-		return c.Redirect(http.StatusSeeOther, "/")
-	}
+func Index_GET(c echo.Context, sessionMgr *session.Session) error {
+	userSes := sessionMgr.CheckSession(c)
 
 	// session.Update
 	return c.Render(http.StatusOK, "index.gohtml", userSes)
@@ -70,7 +68,7 @@ func Index_GET(c echo.Context, jwtWrapper *jwtsession.JwtWrapper, sessionMgr *se
 
 // handler function, for the index page
 // when posting, takes form params and redirect to search page
-func Index_POST(c echo.Context, jwtWrapper *jwtsession.JwtWrapper, sessionMgr *session.Session) error {
+func Index_POST(c echo.Context, sessionMgr *session.Session) error {
 	form, _ := c.FormParams()
 
 	postSearch := form["search"][0]
