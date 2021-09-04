@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ksw95/GoIndustrialProject/API/controller"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
-func StartServer() (http.Server, *echo.Echo, *model.DBHandler, error) {
+func StartServer() (http.Server, *echo.Echo, *controller.DBHandler, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	err := godotenv.Load("go.env")
@@ -22,11 +23,8 @@ func StartServer() (http.Server, *echo.Echo, *model.DBHandler, error) {
 		fmt.Println(err)
 	}
 
-	dbHandler := controller.DBHandler{
-		mysql.OpenDB(),
-		os.Getenv("API_KEY"),
-		false,
-	}
+	dbHandler := controller.OpenDB(os.Getenv("DATABASE"))
+	dbHandler.ApiKey = os.Getenv("API_KEY")
 
 	e := echo.New()
 
@@ -35,8 +33,11 @@ func StartServer() (http.Server, *echo.Echo, *model.DBHandler, error) {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if !dbHandler.ReadyForTraffic {
-				fmt.Println("API is accessed, but is unable to contact sql server")
-				responseJson := controller.DataPacketSimple{
+				fmt.Println("API is accessed, but sql server is unavailable")
+				responseJson := struct {
+					Msg     string //message
+					ResBool string //boolean response
+				}{
 					"not ready for traffic",
 					"false",
 				}
@@ -52,32 +53,53 @@ func StartServer() (http.Server, *echo.Echo, *model.DBHandler, error) {
 		}
 	})
 
+	//check if mysql is active
+	go func(dbHandler *controller.DBHandler) {
+		for {
+			results, err1 := dbHandler.DB.Query("Select * FROM Restaurant WHERE ID = ?", 1)
+			if err1 != nil {
+				dbHandler.ReadyForTraffic = false
+				fmt.Println("unable to contact mysql server, error:", err1.Error())
+			} else {
+				dbHandler.ReadyForTraffic = true
+				results.Close()
+			}
+			time.Sleep(120 * time.Second)
+		}
+	}(dbHandler)
+
 	// other echo middleware
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 
 	//handler functions
+	e.GET("/api/v0/health", controller.HealthCheckLiveness)
+
 	e.GET("/api/v0/GetRestaurant", dbHandler.GetRestaurant)
 
 	e.GET("/api/v0/GetRestaurantAll", dbHandler.GetRestaurantAll)
+
+	e.GET("/api/v0/InsertRestaurant", dbHandler.InsertRestaurant)
 
 	e.GET("/api/v0/SearchRestaurant", dbHandler.SearchRestaurant)
 
 	e.GET("/api/v0/GetFoodShopID", dbHandler.GetFoodShopID)
 
-	e.GET("/api/v0/health", controller.HealthCheckLiveness)
+	e.GET("/api/v0/InsertFood", dbHandler.InsertFood)
+
+	e.GET("/api/v0/EditFood", dbHandler.EditFood)
 
 	//server
 	port := os.Getenv("PORT")
 	fmt.Println("listening at port " + port)
 	s := http.Server{Addr: ":" + port, Handler: e}
 
-	return s, e, &dbHandler, nil
+	return s, e, dbHandler, nil
 }
 
 func main() {
 	s, e, dbHandler, _ := StartServer()
-	defer dbHandler.DBController.DB.Close()
+	defer dbHandler.DB.Close()
 
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		e.Logger.Fatal(err)

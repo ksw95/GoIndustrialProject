@@ -17,10 +17,11 @@ CREATE TABLE Account  (
 
 CREATE TABLE UserCond (
     Username VARCHAR(50) NOT NULL PRIMARY KEY, 
+    LastLogin VARCHAR(100) NOT NULL, 
     MaxCalories INT,
-    Diabetic VARCHAR(1) NOT NULL, 
-    Halal VARCHAR(1) NOT NULL, 
-    Vegan VARCHAR(1) NOT NULL
+    Diabetic VARCHAR(20) NOT NULL, 
+    Halal VARCHAR(15) NOT NULL, 
+    Vegan VARCHAR(15) NOT NULL
     );
 
 CREATE TABLE Food (
@@ -29,9 +30,9 @@ CREATE TABLE Food (
     ShopID INT NOT NULL,
     Calories INT NOT NULL,
     Description VARCHAR(300) NOT NULL,
-    Sugary VARCHAR(1) NOT NULL, 
-    Halal VARCHAR(1) NOT NULL, 
-    Vegan VARCHAR(1) NOT NULL
+    Sugary VARCHAR(15) NOT NULL, 
+    Halal VARCHAR(15) NOT NULL, 
+    Vegan VARCHAR(15) NOT NULL
     );
 
 CREATE TABLE History (

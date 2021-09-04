@@ -1,0 +1,151 @@
+{{template "header" .UserPersistInfo}}
+<div class="container">
+<form id="search-form" method="post">
+<div class="row">
+    <div class="col-lg-12 card-margin">
+        <div class="card search-form">
+            <div class="card-body p-0">
+                
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="row no-gutters">
+                                <div class="col-lg-3 col-md-3 col-sm-12 p-0">
+                                    <select class="form-control" id="PostCat" name="PostCat">
+                                        <option value="Food">Food</option>
+                                        <option value="Restaurant">Restaurant</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-8 col-md-6 col-sm-12 p-0">
+                                    <input type="text" placeholder="Search..." class="form-control" id="PostSearch" name="PostSearch">
+                                </div>
+                                <div class="col-lg-1 col-md-3 col-sm-12 p-0">
+                                    <button type="submit" class="btn btn-base">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+        <div class="col-12">
+            <div class="card card-margin">
+                <div class="card-body">
+                    <div class="row search-body">
+                        <div class="col-lg-12">
+                            <div class="search-result">
+                                <div class="result-body">
+                                    <div class="table-responsive">
+                                        <table class="table widget-26">
+                                            <tbody>
+                                                {{$userCond := .UserCond}}
+                                                {{if .PaginationBool}}
+                                                    {{if .FoodBool}}
+                                                        {{range .DataInfo}}
+                                                            <tr>
+                                                                <td>
+                                                                    <div class="widget-26-emp-img">
+                                                                        <img src={{.ImageLink}} alt="Company" />
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-title">
+                                                                    <a href="/restaurant/{{.ShopID}}"><b>{{.Name}}</b></a>
+                                                                    </div>
+                                                                    
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-info">
+                                                                        <p class="type m-0">{{.Sugary}}</p>
+                                                                        <p class="type m-0">{{.Halal}}</p>
+                                                                        <p class="type m-0">{{.Vegan}}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-info" >
+                                                                        <p class="type m-0">Calories</p>
+                                                                        <p class="type m-0">{{.Calories}}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-info" >
+                                                                        <p class="type m-0">{{.Description}}</p>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        {{end}}
+                                                        
+                                                    {{else}} 
+                                                        {{range .DataInfo}}
+                                                            <tr>
+                                                                <td>
+                                                                    <div class="widget-26-emp-img">
+                                                                        <img src={{.ImageLink}} alt="Company" />
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-title">
+                                                                    <a href="/restaurant/{{.ID}}"><b>{{.Name}}</b></a>
+                                                                    </div>
+                                                                    
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-info">
+                                                                        <p class="type m-0">{{.Address}}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-info" >
+                                                                        <p class="type m-0">Postal</p>
+                                                                        <p class="type m-0">{{.PostalCode}}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="widget-26-info" >
+                                                                        <p class="type m-0">{{.Description}}</p>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        {{end}}
+                                                    {{end}}
+
+                                                {{else}}
+                                                    <h3> There is no result to display</h3>
+                                                {{end}}
+
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{if .PaginationBool}}
+    <center class="footerhome">
+    	<nav class="d-flex justify-content-center">
+	        <ul class="pagination pagination-base pagination-boxed pagination-square mb-0">
+                {{.PaginationString}}
+        	</ul>
+        </nav>
+    </center>
+{{else}}
+    <center class="footerhome">
+        <p><br>1</a></p>
+    </center>
+{{end}}
+</form>
+
+{{template "footer"}}
+
+

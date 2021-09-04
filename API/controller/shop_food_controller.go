@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/joho/godotenv"
 	"github.com/ksw95/GoIndustrialProject/API/models"
 	"github.com/labstack/echo"
 )
@@ -84,21 +82,13 @@ func HealthCheckLiveness(c echo.Context) error {
 }
 
 // Opens db and returns a struct to access it
-func OpenDB() *DBHandler {
-
-	// check environment for the database url
-	err := godotenv.Load("go.env")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	databaseURL := os.Getenv("DATABASE_URL_MYSQL")
+func OpenDB(databaseURL string) *DBHandler {
 
 	//load database connection
 	db, err1 := sql.Open("mysql", databaseURL)
 
 	if err1 != nil {
-		panic(err.Error())
+		panic(err1.Error())
 	} else {
 		fmt.Println("no issue")
 	}
@@ -546,7 +536,7 @@ func InsertSort(arr []int, arrSort []int) ([]int, []int) {
 func MergeSort(arr []int, arrSort []int) ([]int, []int) {
 	len1 := int(len(arr))
 	len2 := int(len1 / 2)
-	if len1 <= 5 {
+	if len1 < 5 {
 		return InsertSort(arr, arrSort)
 	} else {
 		arr1, arrSort1 := MergeSort(arr[len2:], arrSort[len2:])

@@ -52,9 +52,10 @@ Condition:
 
     - Username    string (Primary key , unique identifier for the condition)
     - MaxCalories int
-    - Diabetic    bool
-    - Halal       bool
-    - Vegan       bool
+    - LastLogin   string
+    - Diabetic    string
+    - Halal       string
+    - Vegan       string
 
 Food:
 
@@ -63,9 +64,9 @@ Food:
     - ShopID      int
     - Description string
     - Calories    int
-    - Sugary      bool
-    - Halal       bool
-    - Vegan       bool
+    - Sugary      string
+    - Halal       string
+    - Vegan       string
 
 Restaurant:
 

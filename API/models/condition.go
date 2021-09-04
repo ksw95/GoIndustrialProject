@@ -1,14 +1,13 @@
-package Models
+package models
 
 import (
 	"GoIndustrialProject/API/controller"
-	
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"strconv"
+	"fmt"
 
-	"github.com/gorilla/mux"
+	"encoding/json"
+	"net/http"
+
+	"github.com/labstack/echo"
 )
 
 type UserCond struct {
@@ -38,13 +37,13 @@ func (userC *UserCond) Insert(c echo.Context) error {
 
 	//first statement
 	stmt, err1 := tx.Prepare("INSERT INTO Condition VALUES (?, ?, ?, ?, ?))")
-	
+
 	if err1 == nil {
 		fmt.Println(err1)
 	}
 
 	_, err = stmt.Exec(userC.Username, userC.MaxCalories, userC.Diabetic, userC.Halal, userC.Vegan)
-	
+
 	stmt.Close()
 
 	switch err {
@@ -72,9 +71,9 @@ func (userC *UserCond) Update(c echo.Context) error {
 
 	//first statement
 	stmt, err1 := tx.Prepare("UPDATE Condition " +
-					"SET MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
-					"WHERE Username=?")
-	
+		"SET MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
+		"WHERE Username=?")
+
 	if err1 == nil {
 		_, err = stmt.Exec(userC.MaxCalories, userC.Diabetic, userC.Halal, userC.Vegan, userC.Username)
 	}
@@ -100,7 +99,7 @@ func (userC UserCond) Get(c echo.Context) error {
 
 	// query mysql
 	results, err1 := controller.DBHandler.DB.Query("SELECT * FROM MemberType WHERE Username=?", username)
-	
+
 	if err1 != nil {
 		fmt.Println(err1.Error())
 		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
@@ -128,24 +127,19 @@ func (userC *UserCond) Insert(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("401 - Invalid key"))
 		return
 	}
-
 	if r.Header.Get("Content-type") == "application/json" {
 		if r.Method == "POST" {
 			// Read the string sent to the service
 			reqBody, err := ioutil.ReadAll(r.Body)
-
 			if err == nil {
 				stmt, err := DB.Prepare("INSERT INTO Condition " +
 					"(Username, MaxCalories, Diabetic, Halal, Vegan) " +
 					"VALUES (?, ?, ?, ?, ?))")
-
 				// Convert JSON to object
 				json.Unmarshal(reqBody, &userC)
-
 				// Open database and close it later
 				db := openDB()
 				defer db.Close()
-
 				// Execute Query
 				results, err := db.Exec(userC.Username, userC.MaxCalories, userC.Diabetic, userC.Halal, userC.Vegan)
 				if err != nil {
@@ -154,7 +148,6 @@ func (userC *UserCond) Insert(w http.ResponseWriter, r *http.Request) {
 					w.Write([]byte("409 - Username"))
 					return
 				}
-
 				if rows, _ := results.RowsAffected(); rows > 0 {
 					// Send success to client
 					w.WriteHeader(http.StatusCreated)
@@ -164,7 +157,6 @@ func (userC *UserCond) Insert(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
 func (userC *UserCond) Update(w http.ResponseWriter, r *http.Request) {
 	// Check valid key
 	if !validKey(r) {
@@ -172,28 +164,22 @@ func (userC *UserCond) Update(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("401 - Invalid key"))
 		return
 	}
-
 	if r.Header.Get("Content-type") == "application/json" {
 		if r.Method == "PUT" {
 			reqBody, err := ioutil.ReadAll(r.Body)
-
 			if err == nil {
 				stmt, err := DB.Prepare("UPDATE Condition " +
 					"SET MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
 					"WHERE Username=?")
-
 				json.Unmarshal(reqBody, &userC)
-
 				db := openDB()
 				defer db.Close()
-
 				results, err := db.Exec(userC.MaxCalories, userC.Diabetic, userC.Halal, userC.Vegan, userC.Username)
 				if err != nil {
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("404 - Not found"))
 					return
 				}
-
 				if rows, _ := results.RowsAffected(); rows > 0 {
 					w.WriteHeader(http.StatusAccepted)
 					w.Write([]byte("202 - " + strconv.FormatInt(rows, 10) + " row(s) affected"))
@@ -205,7 +191,6 @@ func (userC *UserCond) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
 func (userC UserCond) Get(w http.ResponseWriter, r *http.Request) {
 	// Check valid key
 	if !validKey(r) {
@@ -213,26 +198,21 @@ func (userC UserCond) Get(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("401 - Invalid key"))
 		return
 	}
-
 	// Get variables from client request
 	params := mux.Vars(r)
-
 	if r.Header.Get("Content-type") == "application/json" {
 		if r.Method == "GET" {
 			query := "SELECT * " +
 				"FROM MemberType " +
 				"WHERE Username=?"
-
 			db := openDB()
 			defer db.Close()
-
 			results, err := db.Query(query, params["Username"])
 			if err != nil {
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte("404 - No course found"))
 				return
 			}
-
 			if results.Next() {
 				err = results.Scan(&userC.Username, &userC.MaxCalories, &userC.Diabetic, &userC.Halal, &userC.Vegan)
 				if err != nil {

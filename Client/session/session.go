@@ -2,11 +2,10 @@
 package session
 
 import (
-	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/Mechwarrior1/PGL_frontend/jwtsession"
-
+	"github.com/ksw95/GoIndustrialProject/Client/models"
 	"github.com/labstack/echo"
 	uuid "github.com/satori/go.uuid"
 )
@@ -14,25 +13,17 @@ import (
 type (
 	// a struct to manage sessions
 	Session struct {
-		MapSession *map[string]SessionStruct // maps UUID to user session
-		ApiKey     string
+		MapSession *map[string]*SessionStruct // maps UUID to user session
 		Client     ClientDo
-		BaseURL    string
+		ApiKey     string //get key from env
+		BaseURL    string //get url from env
 	}
 
 	SessionStruct struct {
 		LastActive int64
-		UserC      *UserCond
-		Success	string
-		SuccessMsg	string
-	}
-
-	UserCond struct {
-		Username    string
-		MaxCalories int
-		Diabetic    bool
-		Halal       bool
-		Vegan       bool
+		UserCon    *models.UserCond
+		Success    string
+		SuccessMsg string
 	}
 
 	// logger struct {
@@ -45,23 +36,44 @@ type (
 	}
 )
 
+//new session for users
+func (s *Session) NewSession(c echo.Context, userCond *models.UserCond) *SessionStruct {
+	newUuid := uuid.NewV4().String()
+
+	//log uuid session to session map
+	newSession := &SessionStruct{time.Now().Unix(), userCond, "", ""}
+	(*s.MapSession)[newUuid] = newSession
+
+	// store uuid in cookie
+	NewCookie(c, 3, newUuid)
+
+	return newSession
+}
+
+//new session for users
+func (s *Session) NewEmptySession(c echo.Context) *SessionStruct {
+
+	var userCond models.UserCond
+	return s.NewSession(c, &userCond)
+}
+
 // logs the session in the sessionmanager.
-func (s *Session) CheckSession(c echo.Context) SessionStruct {
+func (s *Session) CheckSession(c echo.Context) *SessionStruct {
 	cookieVal, err := c.Cookie("foodiepandaCookie")
 
-	sessionStruct, ok := (*s.MapSession)[cookieVal] // check if previous session is around
-
-	if !ok || cookieVal = ""{ 
-		newUuid := uuid.NewV4().String()
-
-		//new session id for users not logged in
-		(*s.MapSession)[newUuid] = SessionStruct{time.Now().Unix(), nil}
-		NewCookie(c, 3, newJwt)
-
-		return claims // return new claims for user, since old session got terminated
+	// cookie not found, new session created
+	if err != nil {
+		return s.NewEmptySession(c)
 	}
 
-	return jwtClaim
+	sessionStruct, ok1 := (*s.MapSession)[cookieVal.Value] // check if previous session is around
+
+	// session not found, new session created
+	if !ok1 || cookieVal.Value == "" {
+		return s.NewEmptySession(c)
+	}
+
+	return sessionStruct
 }
 
 // function deletes the session, based on the session id string.
