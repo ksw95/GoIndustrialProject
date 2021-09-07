@@ -42,3 +42,8 @@ type Restaurant struct {
 	Address     string
 	PostalCode  int
 }
+
+type TokenPayload struct {
+	tokenString string
+	payload     UserCond
+}
