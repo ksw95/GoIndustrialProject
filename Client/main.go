@@ -70,7 +70,7 @@ func StartServer() (http.Server, *echo.Echo, error) {
 		return controller.Index_POST(c, sessionMgr)
 	})
 
-	e.GET("/view", func(c echo.Context) error {
+	e.GET("/search", func(c echo.Context) error {
 		return controller.SearchPage_GET(c, sessionMgr)
 	})
 

@@ -45,6 +45,7 @@ func StartServer() (http.Server, *echo.Echo, *controller.DBHandler, error) {
 				return c.JSON(503, responseJson)
 			}
 			if c.QueryParam("key") != dbHandler.ApiKey { ////
+				fmt.Println("API is accessed, but api key supplied is different")
 				// encode to json and send
 				return echo.NewHTTPError(http.StatusUnauthorized, "")
 

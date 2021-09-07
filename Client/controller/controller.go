@@ -62,7 +62,7 @@ func Index_POST(c echo.Context, sessionMgr *session.Session) error {
 
 	postSearch := form["search"][0]
 	postCat := form["cat"][0] //food or restaurant
-	url := "/view?search=" + postSearch + "&cat=" + postCat
+	url := "/search?term=" + postSearch + "&cat=" + postCat
 	return c.Redirect(http.StatusSeeOther, url)
 
 }
@@ -73,51 +73,66 @@ func SearchPage_GET(c echo.Context, sessionMgr *session.Session) error {
 	userSes := sessionMgr.CheckSession(c)
 
 	form, _ := c.FormParams()
-	postSearch := form["search"][0]
+	postTerm := form["term"][0]
 	postCat := form["cat"][0] //food or restaurant category
 
-	url := "search=" + postSearch + "&type=" + postCat
+	url := "search=" + postTerm + "&type=" + postCat
 
-	dataByte, err := TapApi(http.MethodGet, "", "v0/SearchRestaurant?"+url, sessionMgr)
+	dataByte, err := TapApi(http.MethodGet, "", "SearchRestaurant?"+url, sessionMgr)
 	if err != nil {
 		fmt.Println("TapApi failed with error:", err.Error())
 		return errors.New("http request failed with " + err.Error())
 	}
 
-	if postCat == "food" {
-		var searchResult []models.Food
+	if postCat == "Food" {
+		var searchResult struct {
+			Msg     string
+			ResBool string
+			Data    []models.Food
+		}
+
 		json.Unmarshal(*dataByte, &searchResult)
 
 		dataInsert := struct {
-			UserData       models.UserCond
+			UserData       *session.SessionStruct
 			SearchResult   []models.Food
 			PaginationBool bool
 			FoodBool       bool
+			ResultBool     bool
 		}{
-			*(userSes.UserCon),
-			searchResult,
+			userSes,
+			searchResult.Data,
 			false,
+			true,
 			true,
 		}
 
+		fmt.Println("food", searchResult)
 		return c.Render(http.StatusOK, "searchpage.gohtml", dataInsert)
 	}
+	var searchResult struct {
+		Msg     string
+		ResBool string
+		Data    []models.Restaurant
+	}
 
-	var searchResult []models.Restaurant
 	json.Unmarshal(*dataByte, &searchResult)
 
 	dataInsert := struct {
-		UserData       models.UserCond
+		UserData       *session.SessionStruct
 		SearchResult   []models.Restaurant
 		PaginationBool bool
 		FoodBool       bool
+		ResultBool     bool
 	}{
-		*(userSes.UserCon),
-		searchResult,
+		userSes,
+		searchResult.Data,
 		false,
 		false,
+		true,
 	}
 
+	fmt.Println("resta", searchResult)
 	return c.Render(http.StatusOK, "searchpage.gohtml", dataInsert)
 
 }

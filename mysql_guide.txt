@@ -89,3 +89,27 @@ exit;
 
 mysql -P 5700 --protocol=tcp -u myuser -p
 password
+
+
+INSERT INTO Food (ID, Name , ShopID, Calories, Description, Sugary, Halal, Vegan) VALUES (
+    1, 'chicken rice', 1, 1000, 'chicken rice', 'Not Sugary', 'Not Halal', 'Not Vegan');
+INSERT INTO Food (ID, Name , ShopID, Calories, Description, Sugary, Halal, Vegan) VALUES (
+    2, 'nasi lemak', 1, 1000, 'nasi lemak', 'Not Sugary', 'Halal', 'Not Vegan');
+INSERT INTO Food (ID, Name , ShopID, Calories, Description, Sugary, Halal, Vegan) VALUES (
+    3, 'salad', 1, 1000, 'salad', 'Not Sugary', 'Not Halal', 'Vegan');
+INSERT INTO Food (ID, Name , ShopID, Calories, Description, Sugary, Halal, Vegan) VALUES (
+    4, 'ice cream', 1, 1000, 'ice cream', 'Sugary', 'Not Halal', 'Not Vegan');
+INSERT INTO Food (ID, Name , ShopID, Calories, Description, Sugary, Halal, Vegan) VALUES (
+    5, 'fish ball noodles', 1, 1000, 'fish ball noodles', 'Not Sugary', 'Not Halal', 'Not Vegan');
+
+    
+CREATE TABLE Food (
+    ID INT NOT NULL PRIMARY KEY, 
+    Name VARCHAR(50) NOT NULL, 
+    ShopID INT NOT NULL,
+    Calories INT NOT NULL,
+    Description VARCHAR(300) NOT NULL,
+    Sugary VARCHAR(15) NOT NULL, 
+    Halal VARCHAR(15) NOT NULL, 
+    Vegan VARCHAR(15) NOT NULL
+    );
