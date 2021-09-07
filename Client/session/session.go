@@ -53,7 +53,18 @@ func (s *Session) NewSession(c echo.Context, userCond *models.UserCond) *Session
 //new session for users
 func (s *Session) NewEmptySession(c echo.Context) *SessionStruct {
 
-	var userCond models.UserCond
+	// var userCond models.UserCond
+
+	// dummy userCond
+	userCond := models.UserCond{
+		"new user",
+		"7/9/2021",
+		4000,
+		"Diabetic",
+		"Halal",
+		"Vegan",
+	}
+
 	return s.NewSession(c, &userCond)
 }
 

@@ -313,6 +313,7 @@
         <div>
           <a href="/" class="navbar-brand"><h1>FoodiePanda</h1></a>
         </div>
+
         {{if eq .UserCon.Username ""}}
           <div class="rightbox">
             <a href="/login" class="navbar-brand">Login</a>
@@ -340,12 +341,12 @@
     <div class="container postsContainer">
       <div class="card card-body card-form product-form2">
         {{if eq .Success "ok"}}
-          <span class="alert success success1"> {{.Msg}}
+          <span class="alert success"> {{.Msg}}
           </span>
           <br>
         {{end}}
         {{if eq .Success "error"}}
-          <span class="alert error error1"> {{.Msg}}
+          <span class="alert error"> {{.Msg}}
           </span>
           <br>
         {{end}}
