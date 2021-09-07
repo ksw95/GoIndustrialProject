@@ -40,7 +40,7 @@ func ExtractToken(c echo.Context) string {
 	return cookie.Value
 }
 
-func ExtractTokenID(c echo.Context) (uint32, error) {
+func ExtractTokenID(c echo.Context) (string, error) {
 	tokenString := ExtractToken(c)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -51,7 +51,7 @@ func ExtractTokenID(c echo.Context) (uint32, error) {
 	})
 
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
@@ -65,5 +65,5 @@ func ExtractTokenID(c echo.Context) (uint32, error) {
 		return username, nil
 	}
 
-	return 0, nil
+	return "", nil
 }
