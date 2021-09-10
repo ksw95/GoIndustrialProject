@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (dbHandler *DBHandler) Insert(c echo.Context) error {
+func (dbHandler *DBHandler) InsertUserCond(c echo.Context) error {
         userC := models.UserCond{}
 	err := json.NewDecoder(c.Request().Body).Decode(&userC)
 	if err != nil {
@@ -19,7 +19,7 @@ func (dbHandler *DBHandler) Insert(c echo.Context) error {
 	}
 
 	// prepare statement to insert record
-	tx, err := controller.DBHandler.DB.Begin()
+	tx, err := DBHandler.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (dbHandler *DBHandler) Insert(c echo.Context) error {
 	}
 }
 
-func (dbHandler *DBHandler) Update(c echo.Context) error {
+func (dbHandler *DBHandler) UpdateUserCond(c echo.Context) error {
         userC := models.UserCond{}
 	err := json.NewDecoder(c.Request().Body).Decode(&userC)
 	if err != nil {
@@ -54,14 +54,14 @@ func (dbHandler *DBHandler) Update(c echo.Context) error {
 	}
 
 	// prepare statement to insert record
-	tx, err := controller.DBHandler.DB.Begin()
+	tx, err := DBHandler.DB.Begin()
 	if err != nil {
 		return err
 	}
 
 	//first statement
 	stmt, err1 := tx.Prepare("UPDATE Condition " +
-		"SET =DATE_ADD(NOW(), INTERVAL 8 HOUR), MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
+		"SET LastLogin=DATE_ADD(NOW(), INTERVAL 8 HOUR), MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
 		"WHERE Username=?")
 
 	if err1 == nil {
@@ -80,7 +80,7 @@ func (dbHandler *DBHandler) Update(c echo.Context) error {
 	}
 }
 
-func (dbHandler *DBHandler) Get(c echo.Context) error {
+func (dbHandler *DBHandler) GetUserCond(c echo.Context) error {
         userC := models.UserCond{}
 	//get id param
 	username := c.QueryParam("Username")
@@ -89,7 +89,7 @@ func (dbHandler *DBHandler) Get(c echo.Context) error {
 	}
 
 	// query mysql
-	results, err1 := controller.DBHandler.DB.Query("SELECT * FROM MemberType WHERE Username=?", username)
+	results, err1 := DBHandler.DB.Query("SELECT * FROM MemberType WHERE Username=?", username)
 
 	if err1 != nil {
 		fmt.Println(err1.Error())
@@ -99,7 +99,7 @@ func (dbHandler *DBHandler) Get(c echo.Context) error {
 
 	//scan mysql result
 	results.Next()
-	err2 := results.Scan(&userC.Username, &userC.MaxCalories, &userC.Diabetic, &userC.Halal, &userC.Vegan)
+	err2 := results.Scan(&userC.Username, &userC.LastLogin, &userC.MaxCalories, &userC.Diabetic, &userC.Halal, &userC.Vegan)
 
 	if err2 != nil {
 		fmt.Println(err2.Error())
