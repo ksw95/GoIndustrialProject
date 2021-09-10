@@ -36,8 +36,9 @@ type History struct {
 
 type UserCond struct {
 	Username    string
+	LastLogin   string
 	MaxCalories int
-	Diabetic    bool
-	Halal       bool
-	Vegan       bool
+	Diabetic    string
+	Halal       string
+	Vegan       string
 }
