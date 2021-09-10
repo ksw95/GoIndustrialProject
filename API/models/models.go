@@ -33,3 +33,11 @@ type History struct {
 	Distance       float64
 	CaloriesBurned int
 }
+
+type UserCond struct {
+	Username    string
+	MaxCalories int
+	Diabetic    bool
+	Halal       bool
+	Vegan       bool
+}
