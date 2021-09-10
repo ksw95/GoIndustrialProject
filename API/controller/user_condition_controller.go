@@ -25,7 +25,7 @@ func (dbHandler *DBHandler) Insert(c echo.Context) error {
 	}
 
 	//first statement
-	stmt, err1 := tx.Prepare("INSERT INTO Condition VALUES (?, ?, ?, ?, ?))")
+	stmt, err1 := tx.Prepare("INSERT INTO Condition VALUES (?, DATE_ADD(NOW(), INTERVAL 8 HOUR), ?, ?, ?, ?))")
 
 	if err1 == nil {
 		fmt.Println(err1)
@@ -61,7 +61,7 @@ func (dbHandler *DBHandler) Update(c echo.Context) error {
 
 	//first statement
 	stmt, err1 := tx.Prepare("UPDATE Condition " +
-		"SET MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
+		"SET =DATE_ADD(NOW(), INTERVAL 8 HOUR), MaxCalories=?, Diabetic=?, Halal=?, Vegan=? " +
 		"WHERE Username=?")
 
 	if err1 == nil {
