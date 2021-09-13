@@ -2,6 +2,8 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +33,8 @@ func NewMock() (*DBHandler, sqlmock.Sqlmock) {
 }
 
 func TestGetRestaurant(t *testing.T) {
-	// load variables and mock database
+
+	// load dependencies
 	dbHandler, mock := NewMock()
 	defer dbHandler.DB.Close()
 
@@ -49,6 +52,7 @@ func TestGetRestaurant(t *testing.T) {
 	q := make(url.Values)
 	q.Set("key", "123")
 	q.Set("id", "1")
+	fmt.Println("")
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v0/GetRestaurant?"+q.Encode(), nil)
@@ -73,6 +77,71 @@ func TestGetRestaurant(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
+}
+
+func TestGetRestaurant_Fail(t *testing.T) {
+	// load dependencies
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock DB
+	// bPassword, _ := bcrypt.GenerateFromPassword([]byte("john"), bcrypt.MinCost)
+
+	query := "Select \\* FROM Restaurant WHERE ID = \\?"
+	mock.ExpectQuery(query)
+
+	// making the call to api and encode variables
+	q := make(url.Values)
+	q.Set("key", "")
+	q.Set("id", "1")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/GetRestaurant?"+q.Encode(), nil)
+
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.GetRestaurant(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+		assert.Equal(t, "Entry not found", json_map["Msg"])
+	}
+
+	// we make sure that all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetRestaurant_Fail2(t *testing.T) {
+	// load dependencies
+	dbHandler, _ := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// making the call to api and encode variables
+	q := make(url.Values)
+	q.Set("key", "123")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/GetRestaurant?"+q.Encode(), nil)
+
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.GetRestaurant(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+		assert.Equal(t, "id field is empty", json_map["Msg"])
+	}
+
 }
 
 func TestGetRestaurantAll(t *testing.T) {
@@ -118,6 +187,43 @@ func TestGetRestaurantAll(t *testing.T) {
 		json_map_data3 := json_map["Data"].([]interface{})[2].(map[string]interface{})
 		assert.Equal(t, float64(3), json_map_data3["ID"].(float64))
 		assert.Equal(t, "curry3", json_map_data3["Name"].(string))
+
+	}
+
+	// we make sure that all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetRestaurantAll_fail(t *testing.T) {
+	// load variables and mock database
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	//sql mock, intentionally make an error
+	// rows := sqlmock.NewRows([]string{"ID", "Name", "Description", "Address", "PostalCode"})
+	query := "Select \\* FROM Restaurant" //
+	mock.ExpectQuery(query)
+
+	// making the call to api and encode variables
+	q := make(url.Values)
+	q.Set("key", "123")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/GetRestaurantAll?"+q.Encode(), nil)
+
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.GetRestaurantAll(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+		assert.Equal(t, "Bad Request", json_map["Msg"])
 
 	}
 
@@ -176,7 +282,49 @@ func TestInsertRestaurant(t *testing.T) {
 		assert.Equal(t, json_map["ResBool"], "true")
 
 	}
-	// add more for other database tables
+
+}
+
+func TestInsertRestaurant_Fail(t *testing.T) {
+
+	// load variables and mock database
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock for querying max id
+	query := "SELECT MAX\\(ID\\) FROM Restaurant" //for MaxID query
+	rows := sqlmock.NewRows([]string{"ID"}).
+		AddRow(1)
+	mock.ExpectQuery(query).WillReturnRows(rows)
+
+	// mock sql for inserting value
+	mock.ExpectBegin()
+	query2 := "INSERT INTO Restaurant VALUES \\(\\?, \\?, \\?, \\?, \\?\\)"
+
+	prep := mock.ExpectPrepare(query2)
+	prep.ExpectExec()
+
+	mock.ExpectRollback()
+
+	// json payload to api
+
+	// test api
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v0/InsertRestaurant", nil)
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.InsertRestaurant(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+
+		assert.Equal(t, json_map["ResBool"], "false")
+
+	}
 }
 
 func TestEditRestaurant(t *testing.T) {
@@ -222,7 +370,42 @@ func TestEditRestaurant(t *testing.T) {
 		assert.Equal(t, json_map["ResBool"], "true")
 
 	}
-	// add more for other database tables
+
+}
+
+func TestEditRestaurant_Fail(t *testing.T) {
+
+	// load variables and mock database
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock sql for inserting value
+	mock.ExpectBegin()
+	query2 := "UPDATE Restaurant SET Name=\\?, Description=\\?, Address=\\?, PostalCode=\\? WHERE ID=\\?"
+
+	prep := mock.ExpectPrepare(query2)
+	prep.ExpectExec()
+
+	mock.ExpectRollback()
+
+	// test api
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v0/EditRestaurant", nil)
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.EditRestaurant(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+
+		assert.Equal(t, json_map["ResBool"], "false")
+
+	}
+
 }
 
 func TestSearchRestaurant(t *testing.T) {
@@ -262,10 +445,40 @@ func TestSearchRestaurant(t *testing.T) {
 		assert.Equal(t, json_map2[0].(map[string]interface{})["ID"].(float64), float64(1))
 		assert.Equal(t, json_map2[1].(map[string]interface{})["ID"].(float64), float64(2))
 		assert.Equal(t, json_map2[2].(map[string]interface{})["ID"].(float64), float64(3))
+	}
+}
 
-		// //test word2vec as well
-		// assert.Equal(t, json_map2[0].(map[string]interface{})["Similarity"], float64(0.65796596))
-		// assert.Equal(t, json_map2[1].(map[string]interface{})["Similarity"], float64(0.34202674)) // 0.30163363
+func TestSearchRestaurant_Fail(t *testing.T) {
+
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock for querying, sql payload
+	query := "Select \\* FROM Restaurant"
+	mock.ExpectQuery(query)
+
+	//url payload
+	q := make(url.Values)
+	q.Set("key", "123")
+	q.Set("search", "curry")
+	q.Set("type", "restaurant")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/SearchRestaurant?"+q.Encode(), nil)
+	c := e.NewContext(req, rec)
+
+	//inject dependencies and test
+	if assert.NoError(t, dbHandler.SearchRestaurant(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+
+		assert.Equal(t, json_map["ResBool"], "false")
+
 	}
 }
 
@@ -307,9 +520,40 @@ func TestSearchFood(t *testing.T) {
 		assert.Equal(t, json_map2[1].(map[string]interface{})["ID"].(float64), float64(3))
 		assert.Equal(t, json_map2[2].(map[string]interface{})["ID"].(float64), float64(2))
 
-		// //test word2vec as well
-		// assert.Equal(t, json_map2[0].(map[string]interface{})["Similarity"], float64(0.65796596))
-		// assert.Equal(t, json_map2[1].(map[string]interface{})["Similarity"], float64(0.34202674)) // 0.30163363
+	}
+}
+
+func TestSearchFood_Fail(t *testing.T) {
+
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock for querying, sql payload
+	query := "Select \\* FROM Food"
+	mock.ExpectQuery(query)
+
+	//url payload
+	q := make(url.Values)
+	q.Set("key", "123")
+	q.Set("search", "curry")
+	q.Set("type", "food")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/SearchRestaurant?"+q.Encode(), nil)
+	c := e.NewContext(req, rec)
+
+	//inject dependencies and test
+	if assert.NoError(t, dbHandler.SearchRestaurant(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+
+		assert.Equal(t, json_map["ResBool"], "false")
+
 	}
 }
 
@@ -349,6 +593,43 @@ func TestGetFoodShopID(t *testing.T) {
 		json_map_data := json_map["Data"].([]interface{})[0].(map[string]interface{})
 		assert.Equal(t, float64(1), json_map_data["ID"].(float64))
 		assert.Equal(t, "curry", json_map_data["Name"].(string))
+
+	}
+
+	// we make sure that all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetFoodShopID_Fail(t *testing.T) {
+	// load variables and mock database
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock DB
+	query := "Select \\* FROM Food WHERE ShopID = \\?"
+	mock.ExpectQuery(query)
+
+	// making the call to api and encode variables
+	q := make(url.Values)
+	q.Set("key", "123")
+	q.Set("id", "1")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/GetFoodShopID?"+q.Encode(), nil)
+
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.GetFoodShopID(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+		assert.Equal(t, "false", json_map["ResBool"])
 
 	}
 
@@ -410,7 +691,44 @@ func TestInsertFood(t *testing.T) {
 		assert.Equal(t, json_map["ResBool"], "true")
 
 	}
-	// add more for other database tables
+
+}
+
+func TestInsertFood_Fail(t *testing.T) {
+
+	// load variables and mock database
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock for querying max id
+	query := "SELECT MAX\\(ID\\) FROM Food" //for MaxID query
+	mock.ExpectQuery(query)
+
+	// mock sql for inserting value
+	mock.ExpectBegin()
+	query2 := "INSERT INTO Food VALUES \\(\\?, \\?, \\?, \\?, \\?, \\?, \\?, \\?\\)"
+
+	prep := mock.ExpectPrepare(query2)
+	prep.ExpectExec()
+
+	mock.ExpectRollback()
+
+	// test api
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v0/InsertFood", nil)
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.InsertFood(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+
+		assert.Equal(t, json_map["ResBool"], "false")
+	}
 }
 
 func TestEditFood(t *testing.T) {
@@ -459,13 +777,54 @@ func TestEditFood(t *testing.T) {
 		assert.Equal(t, json_map["ResBool"], "true")
 
 	}
-	// add more for other database tables
+
+}
+
+func TestEditFood_Fail(t *testing.T) {
+
+	// load variables and mock database
+	dbHandler, mock := NewMock()
+	defer dbHandler.DB.Close()
+
+	e := echo.New()
+
+	// mock sql for inserting value
+	mock.ExpectBegin()
+	query2 := "UPDATE Food SET Name=\\?, ShopID=\\?, Calories=\\?, Description=\\?, Sugary=\\?, Halal=\\?, Vegan=\\? WHERE ID=\\?"
+
+	prep := mock.ExpectPrepare(query2)
+	prep.ExpectExec()
+	mock.ExpectRollback()
+
+	// test api
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v0/EditFood?", nil)
+	c := e.NewContext(req, rec)
+
+	if assert.NoError(t, dbHandler.EditFood(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		//check response
+		json_map := make(map[string]interface{})
+		json.NewDecoder(rec.Body).Decode(&json_map)
+
+		assert.Equal(t, json_map["ResBool"], "false")
+
+	}
+
 }
 
 func TestMerge(t *testing.T) {
-	_, result := MergeSort([]int{5, 0, 3, 8, 20, 14, 15, 9, 2, 11}, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	_, result, err := MergeSort([]int{5, 0, 3, 8, 20, 14, 15, 9, 2, 11}, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 	for idx, i := range []int{1, 8, 2, 0, 3, 7, 9, 5, 6, 4} {
 		assert.Equal(t, result[idx], i)
+		assert.Equal(t, err, nil)
 	}
+
+}
+
+func TestMerge_Fail(t *testing.T) {
+	_, _, err := MergeSort([]int{5, 0, 3, 8, 20, 14, 15, 9, 2, 11}, []int{0, 1, 2, 3, 4, 5, 6, 7, 8})
+	assert.Equal(t, err, errors.New("array not of same length"))
 
 }

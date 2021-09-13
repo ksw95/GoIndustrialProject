@@ -19,6 +19,7 @@ type (
 		BaseURL    string //get url from env
 	}
 
+	// user session
 	SessionStruct struct {
 		LastActive int64
 		UserCon    *models.UserCond
@@ -26,18 +27,13 @@ type (
 		SuccessMsg string
 	}
 
-	// logger struct {
-	// 	c1 chan string
-	// 	c2 chan string
-	// }
-
 	ClientDo interface {
 		Do(req *http.Request) (*http.Response, error)
 	}
 )
 
 //new session for users
-func (s *Session) NewSession(c echo.Context, userCond *models.UserCond) *SessionStruct {
+func (s *Session) NewSession(c echo.Context, userCond *models.UserCond) (*SessionStruct, string) {
 	newUuid := uuid.NewV4().String()
 
 	//log uuid session to session map
@@ -47,11 +43,11 @@ func (s *Session) NewSession(c echo.Context, userCond *models.UserCond) *Session
 	// store uuid in cookie
 	NewCookie(c, 3, newUuid)
 
-	return newSession
+	return newSession, newUuid
 }
 
 //new session for users
-func (s *Session) NewEmptySession(c echo.Context) *SessionStruct {
+func (s *Session) NewEmptySession(c echo.Context) (*SessionStruct, string) {
 
 	// var userCond models.UserCond
 
@@ -69,22 +65,22 @@ func (s *Session) NewEmptySession(c echo.Context) *SessionStruct {
 }
 
 // logs the session in the sessionmanager.
-func (s *Session) CheckSession(c echo.Context) *SessionStruct {
-	cookieVal, err := c.Cookie("foodiepandaCookie")
+func (s *Session) CheckSession(c echo.Context) (*SessionStruct, string) {
+	cookie, err := c.Cookie("foodiepandaCookie")
 
 	// cookie not found, new session created
 	if err != nil {
 		return s.NewEmptySession(c)
 	}
 
-	sessionStruct, ok1 := (*s.MapSession)[cookieVal.Value] // check if previous session is around
+	sessionStruct, ok1 := (*s.MapSession)[cookie.Value] // check if previous session is around
 
 	// session not found, new session created
-	if !ok1 || cookieVal.Value == "" {
+	if !ok1 || cookie.Value == "" {
 		return s.NewEmptySession(c)
 	}
 
-	return sessionStruct
+	return sessionStruct, cookie.Value
 }
 
 // function deletes the session, based on the session id string.

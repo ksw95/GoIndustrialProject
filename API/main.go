@@ -32,6 +32,7 @@ func StartServer() (http.Server, *echo.Echo, *controller.DBHandler, error) {
 	// middleware to check apikey and server readiness and reply if not ready or key is wrong
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+
 			if !dbHandler.ReadyForTraffic {
 				fmt.Println("API is accessed, but sql server is unavailable")
 				responseJson := struct {
@@ -44,11 +45,11 @@ func StartServer() (http.Server, *echo.Echo, *controller.DBHandler, error) {
 				// encode to json and send
 				return c.JSON(503, responseJson)
 			}
+
 			if c.QueryParam("key") != dbHandler.ApiKey { ////
 				fmt.Println("API is accessed, but api key supplied is different")
 				// encode to json and send
 				return echo.NewHTTPError(http.StatusUnauthorized, "")
-
 			}
 			return next(c)
 		}

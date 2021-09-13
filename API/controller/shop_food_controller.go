@@ -3,6 +3,7 @@ package controller
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -104,7 +105,7 @@ func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 	//get id param
 	id := c.QueryParam("id")
 	if id == "" {
-		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+		return newResponse(c, "id field is empty", "false", http.StatusBadRequest, nil)
 	}
 
 	// query mysql
@@ -112,8 +113,8 @@ func (dbHandler *DBHandler) GetRestaurant(c echo.Context) error {
 	results, err1 := dbHandler.DB.Query("Select * FROM Restaurant WHERE ID = ?", id)
 
 	if err1 != nil {
-		fmt.Println(err1.Error())
-		return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
+		// fmt.Println(err1.Error())
+		return newResponse(c, "Entry not found", "false", http.StatusBadRequest, nil)
 	}
 	defer results.Close()
 
@@ -158,6 +159,7 @@ func (dbHandler *DBHandler) GetRestaurantAll(c echo.Context) error {
 
 		if err != nil {
 			fmt.Println(err.Error())
+			return newResponse(c, "Bad Request", "false", http.StatusBadRequest, nil)
 		} else {
 			restaurantArr = append(restaurantArr, restaurant)
 		}
@@ -184,31 +186,51 @@ func (dbHandler *DBHandler) InsertRestaurant(c echo.Context) error {
 	// prepare statement to insert record
 	tx, err := dbHandler.DB.Begin()
 	if err != nil {
-		return err
+		fmt.Println(err)
+		return rollbackTx(tx, c)
 	}
 
 	//first statement
-	stmt, err1 := tx.Prepare("INSERT INTO Restaurant VALUES (?, ?, ?, ?, ?)")
-	if err1 == nil {
-		fmt.Println(err1)
+	stmt, err := tx.Prepare("INSERT INTO Restaurant VALUES (?, ?, ?, ?, ?)")
+	if err != nil {
+		fmt.Println(err)
+		return rollbackTx(tx, c)
 	}
 
-	_, err = stmt.Exec(id,
+	res, err := stmt.Exec(id,
 		restaurant.Name,
 		restaurant.Description,
 		restaurant.Address,
 		restaurant.PostalCode)
 
+	if err != nil {
+		fmt.Println(err.Error())
+		return rollbackTx(tx, c)
+	}
+
+	affected, err := res.RowsAffected()
 	stmt.Close()
 
-	switch err {
-	case nil:
-		_ = tx.Commit()
-		return newResponse(c, "ok", "true", http.StatusOK, nil)
-	default:
-		tx.Rollback()
-		return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+		return rollbackTx(tx, c)
 	}
+
+	if affected < 1 {
+		fmt.Println("no rows affected in insert restaurant")
+		return rollbackTx(tx, c)
+	}
+
+	_ = tx.Commit()
+	return newResponse(c, "ok", "true", http.StatusOK, nil)
+
+}
+
+func rollbackTx(tx *sql.Tx, c echo.Context) error {
+
+	tx.Rollback()
+	return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+
 }
 
 //edit one restaurant
@@ -224,30 +246,44 @@ func (dbHandler *DBHandler) EditRestaurant(c echo.Context) error {
 	// prepare statement to insert record
 	tx, err := dbHandler.DB.Begin()
 	if err != nil {
-		return err
+		return rollbackTx(tx, c)
 	}
 
 	//first statement
-	stmt, err1 := tx.Prepare("UPDATE Restaurant SET Name=?, Description=?, Address=?, PostalCode=? WHERE ID=?")
-	if err1 == nil {
-		_, err = stmt.Exec(
-			restaurant.Name,
-			restaurant.Description,
-			restaurant.Address,
-			restaurant.PostalCode,
-			restaurant.ID)
+	stmt, err := tx.Prepare("UPDATE Restaurant SET Name=?, Description=?, Address=?, PostalCode=? WHERE ID=?")
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return rollbackTx(tx, c)
 	}
 
+	res, err := stmt.Exec(
+		restaurant.Name,
+		restaurant.Description,
+		restaurant.Address,
+		restaurant.PostalCode,
+		restaurant.ID)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return rollbackTx(tx, c)
+	}
+
+	affected, err := res.RowsAffected()
 	stmt.Close()
 
-	switch err {
-	case nil:
-		_ = tx.Commit()
-		return newResponse(c, "ok", "true", http.StatusOK, nil)
-	default:
-		tx.Rollback()
-		return newResponse(c, "rolled back", "false", http.StatusBadRequest, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+		return rollbackTx(tx, c)
 	}
+
+	if affected < 1 {
+		fmt.Println("no rows affected in insert restaurant")
+		return rollbackTx(tx, c)
+	}
+
+	_ = tx.Commit()
+	return newResponse(c, "ok", "true", http.StatusOK, nil)
 }
 
 //Return Restaurants based on search
@@ -330,7 +366,7 @@ func (dbHandler *DBHandler) SearchRestaurant(c echo.Context) error {
 	}
 
 	// sort the items by score
-	_, sortArr2 := MergeSort(scoreArr, sortIndexArr)
+	_, sortArr2, _ := MergeSort(scoreArr, sortIndexArr)
 	maxLen := len(scoreArr)
 	returnArrSorted := []interface{}{}
 
@@ -462,7 +498,7 @@ func (dbHandler *DBHandler) InsertFood(c echo.Context) error {
 
 	switch err {
 	case nil:
-		err = tx.Commit()
+		_ = tx.Commit()
 		return newResponse(c, "ok", "true", http.StatusOK, nil)
 	default:
 		tx.Rollback()
@@ -505,7 +541,7 @@ func (dbHandler *DBHandler) EditFood(c echo.Context) error {
 
 	switch err {
 	case nil:
-		err = tx.Commit()
+		_ = tx.Commit()
 		return newResponse(c, "ok", "true", http.StatusOK, nil)
 	default:
 		tx.Rollback()
@@ -513,7 +549,7 @@ func (dbHandler *DBHandler) EditFood(c echo.Context) error {
 	}
 }
 
-func InsertSort(arr []int, arrSort []int) ([]int, []int) {
+func InsertSort(arr []int, arrSort []int) ([]int, []int, error) {
 	len1 := len(arr)
 	for i := 1; i < len1; i++ {
 		temp1 := arr[i]
@@ -528,19 +564,23 @@ func InsertSort(arr []int, arrSort []int) ([]int, []int) {
 		arrSort[i2] = tempSort
 	}
 	// fmt.Println(arr, arrSort)
-	return arr, arrSort
+	return arr, arrSort, nil
 }
 
 // arrSort is the index
 // arr is the arr to be sorted
-func MergeSort(arr []int, arrSort []int) ([]int, []int) {
+func MergeSort(arr []int, arrSort []int) ([]int, []int, error) {
 	len1 := int(len(arr))
 	len2 := int(len1 / 2)
-	if len1 < 5 {
+
+	if len1 != len(arrSort) {
+		return []int{}, []int{}, errors.New("array not of same length")
+	} else if len1 < 5 {
 		return InsertSort(arr, arrSort)
 	} else {
-		arr1, arrSort1 := MergeSort(arr[len2:], arrSort[len2:])
-		arr2, arrSort2 := MergeSort(arr[:len2], arrSort[:len2])
+		arr1, arrSort1, _ := MergeSort(arr[len2:], arrSort[len2:])
+		arr2, arrSort2, _ := MergeSort(arr[:len2], arrSort[:len2])
+
 		tempArr := make([]int, len1)
 		tempArrSort := make([]int, len1)
 		i := 0
@@ -572,6 +612,6 @@ func MergeSort(arr []int, arrSort []int) ([]int, []int) {
 				i++
 			}
 		}
-		return tempArr, tempArrSort
+		return tempArr, tempArrSort, nil
 	}
 }

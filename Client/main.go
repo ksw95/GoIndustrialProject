@@ -49,7 +49,7 @@ func StartServer() (http.Server, *echo.Echo, error) {
 
 	client := &http.Client{}
 	sessionMgr := &session.Session{
-		MapSession: &map[string]*session.SessionStruct{},
+		MapSession: &map[string]session.SessionStruct{},
 		ApiKey:     os.Getenv("API_KEY"),
 		Client:     client,
 		BaseURL:    os.Getenv("BASE_URL"),

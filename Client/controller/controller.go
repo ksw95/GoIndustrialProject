@@ -48,7 +48,7 @@ func TapApi(httpMethod string, jsonData interface{}, url string, sessionMgr *ses
 
 // handler function, for the index page
 func Index_GET(c echo.Context, sessionMgr *session.Session) error {
-	userSes := sessionMgr.CheckSession(c)
+	userSes, _ := sessionMgr.CheckSession(c)
 
 	// session.Update
 
@@ -60,8 +60,9 @@ func Index_GET(c echo.Context, sessionMgr *session.Session) error {
 func Index_POST(c echo.Context, sessionMgr *session.Session) error {
 	form, _ := c.FormParams()
 
-	postSearch := form["search"][0]
+	postSearch := form["query"][0]
 	postCat := form["cat"][0] //food or restaurant
+
 	url := "/search?term=" + postSearch + "&cat=" + postCat
 	return c.Redirect(http.StatusSeeOther, url)
 
@@ -70,13 +71,12 @@ func Index_POST(c echo.Context, sessionMgr *session.Session) error {
 // handler function, for the Search page
 //
 func SearchPage_GET(c echo.Context, sessionMgr *session.Session) error {
-	userSes := sessionMgr.CheckSession(c)
+	userSes, _ := sessionMgr.CheckSession(c)
 
-	form, _ := c.FormParams()
-	postTerm := form["term"][0]
-	postCat := form["cat"][0] //food or restaurant category
+	postQuery := c.QueryParam("query")
+	postCat := c.QueryParam("cat") //food or restaurant category
 
-	url := "search=" + postTerm + "&type=" + postCat
+	url := "search=" + postQuery + "&type=" + postCat
 
 	dataByte, err := TapApi(http.MethodGet, "", "SearchRestaurant?"+url, sessionMgr)
 	if err != nil {
@@ -107,7 +107,6 @@ func SearchPage_GET(c echo.Context, sessionMgr *session.Session) error {
 			true,
 		}
 
-		fmt.Println("food", searchResult)
 		return c.Render(http.StatusOK, "searchpage.gohtml", dataInsert)
 	}
 	var searchResult struct {
@@ -132,7 +131,6 @@ func SearchPage_GET(c echo.Context, sessionMgr *session.Session) error {
 		true,
 	}
 
-	fmt.Println("resta", searchResult)
 	return c.Render(http.StatusOK, "searchpage.gohtml", dataInsert)
 
 }
